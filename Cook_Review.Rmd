@@ -1,0 +1,327 @@
+---
+title: "DV_R-Assignment (FINAL)"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Part 1
+
+# Hi Dua. Good job on the assignment. I will have suggestions designated with a number sign (#) for you to look at.
+
+1.  [**Data Inspection:**]{.ul}
+
+-   To set working directory and open files:
+
+# Just set it to my own working directory so I could run it.
+    ```{r}
+      setwd("C:/Users/Tanner/Desktop/Tanner/Iowa_State_Work/PhD_2020_2021/Bioinformatics_for_Biological_data/EEOB 546 R_Assignment/Dua_Vang_Review/DV_R-Assignment")
+      genotypes <- read.delim("fang_et_al_genotypes.txt")
+      snp_pos <-read.delim("snp_position.txt")
+    ```
+
+1.  To inspect the files:
+
+# This needs to be placed in a code chunk ctrl+alt+I
+
+   -   `file.info` = is used to determine size of file in bytes, whether the file is a directory, last status change and last access times, user ID of the file's owner, username, group name, and other info.
+
+    -   `file.size` = to determine file size in bytes
+
+    -   `dim` = to determine number of rows and columns
+    
+# You can also use tail to make sure notheing weird is going on here.
+```{r}
+summary(genotypes)
+        summary(snp_pos)
+
+        file.info("fang_et_al_genotypes.txt") 
+        file.info("snp_position.txt") 
+
+        file.size("fang_et_al_genotypes.txt") 
+        file.size("snp_position.txt") 
+
+        dim(genotypes) 
+        dim(snp_pos)
+```
+
+
+       
+
+2.  [**Data processing:**]{.ul}
+
+-   First we need to install and run the following packages:
+
+    ```{r}
+
+    if(!require("tibble")) install.packages("tibble")
+    library(tibble)
+
+    if(!require("dplyr")) install.packages("dplyr")
+    library(dplyr)
+
+    ```
+
+-   Next, need to parse the data out for groups:
+# This needs to be added to a code block... It didn't let me run it right off the bat.
+
+    -   Maize: ZMMIL, ZMMLR, and ZMMMR
+
+    -   Teosinte: ZMPBA, ZMPIL, and ZMPJA
+    
+# You could have just search "ZMM" or "ZMP" but your way was more accurate in the event that three letters was not enough.
+```{r}
+  maize_genotypes <- subset(genotypes, Group == "ZMMIL" | Group == "ZMMLR" | Group == "ZMMMR")
+
+        teo_genotypes <- subset (genotypes, Group == "ZMPBA" | Group == "ZMPIL" | Group == "ZMPJA")
+```
+
+-   Third, we need to transpose the data so that our columns in the `fang_et_al_genotypes.txt` file becomes our rows:
+
+    ```{r}
+    transposed_maize <- as.data.frame(t(maize_genotypes))
+    transposed_teo <- as.data.frame(t(teo_genotypes))
+
+    #Progress check:
+    View(transposed_maize)
+    View(transposed_teo)
+
+    ```
+
+-   When looking at the data, column one doesn't have name - need to rename it as "SNP_ID":
+
+# I like that you used rownames_to_column because this will allow you to have the file for future analyses.
+    ```{r}
+
+    names(transposed_maize) <- lapply(transposed_maize[1,], as.character) #this makes column one a character 
+
+    transposed_maize <- transposed_maize [-1,] 
+
+    names(transposed_teo) <- lapply(transposed_teo[1, ], as.character)
+    transposed_teo <- transposed_teo[-1,]
+
+    new_transposed_maize <- rownames_to_column(transposed_maize, var="SNP_ID")
+    new_transposed_teo <- rownames_to_column(transposed_teo, var="SNP_ID")
+    ```
+
+-   Next, sort transposed_maize and transposed_teosinte by SNP_ID:
+
+    ```{r}
+    sorted_maize <- arrange(new_transposed_maize, SNP_ID)
+    sorted_teo<- arrange(new_transposed_teo, SNP_ID) 
+    ```
+
+-   Parse the snp data to only have SNP_ID, chromsome\_ and position and sort by SNP_ID:
+
+    ```{r}
+    snp_pos_chrom <- snp_pos[, c("SNP_ID", "Chromosome", "Position")]
+    sorted_snp_pos_chrom <- arrange(snp_pos_chrom, SNP_ID)
+    ```
+
+-   Join sorted_maize genotypes and sorted_teosinte with the sorted_snp_pos_chrom data:
+
+# I think you should remove the headers on genotype data, otherwise the first three rows get sorted into the data. Headerless_Transposed_ZMM_Grouped_Fang_geno= new_transposed_teo[-c(1,2,3),]
+
+    ```{r}
+    joined_maize <- merge(sorted_snp_pos_chrom,sorted_maize, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
+    joined_teosinte <- merge(sorted_snp_pos_chrom,sorted_teo, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
+
+    #Progress check:
+    View(joined_teosinte)
+    View(joined_maize)
+    ```
+
+-   Extract data from each chromosome in maize and teosinte with increasing position with missing data indicated as "?":
+
+# set to my Working Directory
+
+# I wouldn't change the working directory internally. This makes it difficult to run the code. It may be better to just have the files written to the larger file and then just transfer them at the end.
+
+    ```{r}
+
+    #sort increasing first: 
+
+    increase_pos_maize <- joined_maize[order(as.numeric(as.character(joined_maize$Position))),]
+
+    increase_pos_teo <- joined_teosinte[order(as.numeric(as.character(joined_teosinte$Position))),]
+
+#Set to my working directory
+    #set directory to ensure your files are saved where you want them to: 
+    setwd("C:/Users/Tanner/Desktop/Tanner/Iowa_State_Work/PhD_2020_2021/Bioinformatics_for_Biological_data/EEOB 546 R_Assignment/Dua_Vang_Review/DV_R-Assignment/All_Maize_Genotypes/Increasing")
+
+    for (i in 1:10) {
+      maize_files_inc <- increase_pos_maize[increase_pos_maize$Chromosome == i,]
+      #we can create a new CSV file for each chromosome
+      write.csv(maize_files_inc, sprintf("Chr_%d_maize_increasing",i),row.names = F)
+    }
+
+    setwd("C:/Users/Tanner/Desktop/Tanner/Iowa_State_Work/PhD_2020_2021/Bioinformatics_for_Biological_data/EEOB 546 R_Assignment/Dua_Vang_Review/DV_R-Assignment/All_Teosinte_Genotypes/Increasing")
+    for (i in 1:10){
+      teosinte_files_inc<-increase_pos_teo[increase_pos_teo$Chromosome==i,]
+      write.csv(teosinte_files_inc,sprintf("Chr_%d_teosinte_increasing",i),row.names = F)
+    }
+    ```
+
+-   Extract data from each chromosome in maize and teosinte with decreasing position with missing data indicated as "-":
+
+#Perhaps use "-/-" to fill in the gaps as what you have now only puts a dash in the place. This means that Hm and Ht data are uncertain if it is known here or not
+    ```{r}
+    #sort decreasing first:
+    decrease_pos_maize <- joined_maize[order(-as.numeric(as.character(joined_maize$Position))),]
+    decrease_pos_teo <- joined_teosinte[order(-as.numeric(as.character(joined_teosinte$Position))),]
+
+    #replace missing values as "-" 
+    decrease_pos_maize[decrease_pos_maize == "?/?"] <- "-"
+    decrease_pos_teo [decrease_pos_teo == "?/?"] <- "-"
+
+    #check progress
+    View(decrease_pos_maize)
+    View(decrease_pos_teo)
+
+    #set directory to ensure your files are saved where you want them to
+    setwd("C:/Users/Tanner/Desktop/Tanner/Iowa_State_Work/PhD_2020_2021/Bioinformatics_for_Biological_data/EEOB 546 R_Assignment/Dua_Vang_Review/DV_R-Assignment/All_Maize_Genotypes/Decreasing")
+
+    for (i in 1:10) {
+      maize_files_dec <- decrease_pos_maize[decrease_pos_maize$Chromosome == i,]
+      #we can create a new CSV file for each chromosome
+      write.csv(maize_files_dec, sprintf("Chr_%d_maize_decreasing",i),row.names = F)
+    }
+
+   setwd("C:/Users/Tanner/Desktop/Tanner/Iowa_State_Work/PhD_2020_2021/Bioinformatics_for_Biological_data/EEOB 546 R_Assignment/Dua_Vang_Review/DV_R-Assignment/All_Teosinte_Genotypes/Decreasing")
+    for (i in 1:10){
+      teosinte_files_decrease<-decrease_pos_teo[decrease_pos_teo$Chromosome==i,]
+      write.csv(teosinte_files_decrease,sprintf("Chr_%d_teosinte_Decreasing",i),row.names = F)
+    }
+    ```
+
+## Part 2
+
+1.  [**Graphing Data - SNPs Per Chromosome:**]{.ul}
+
+-   Load the following packages:
+# I would put all of the loading of packages at the beginning.
+
+    ```{r}
+    #load the following 
+     if (!require("ggplot2")) install.packages("ggplot2")
+    library(ggplot2)
+    if(!require("tibble")) install.packages("tibble")
+    library(tibble)
+    if (!require("reshape2")) install.packages("reshape2")
+    library(reshape2)
+    if(!require("dplyr")) install.packages("dplyr")
+    library(dplyr)
+    if (!require("plyr")) install.packages("plyr")
+    library(plyr)
+    ```
+
+-   Transpose the original genotypes data frame:
+
+    ```{r}
+    transposed_genotypes <- as.data.frame(t(genotypes))
+
+    names(transposed_genotypes) <- lapply(transposed_genotypes[1,], as.character) #this makes column one a character 
+
+    transposed_genotypes <- transposed_genotypes[-1,] 
+
+    new_transposed_genotypes <- rownames_to_column(transposed_genotypes, var="SNP_ID")
+    ```
+
+-   Sort new_transposed_genotypes with SNP_ID and join with sorted_snp_pos_chrom:
+
+    ```{r}
+    sorted_genotypes <- arrange(new_transposed_genotypes, SNP_ID)
+
+    joined_genotypes <- merge(sorted_snp_pos_chrom,sorted_genotypes, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
+    ```
+
+-   Graphing SNPs Per Chromosome:
+
+    ```{r}
+    ggplot(data = joined_genotypes) +
+      geom_bar(mapping = aes(x = Chromosome)) +
+      scale_x_discrete(limits=c(1:10, "unknown", "multiple")) +
+      ggtitle(label = "SNPs per chromosome") +
+      xlab(label = "Chromosome #") +
+      ylab(label = "# of SNPs") +
+      theme(
+        
+        plot.title = element_text(hjust = 0.5, size = 16),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12)
+      )
+
+    ```
+
+#Don't forget Distibution:
+# ggplot(data = Filename) + geom_point(mapping = aes(x=Position, y=Chromosome))
+
+2.  [**Graphing Data - Missing Data Heterozygosity:**]{.ul}
+
+-   Reorganize the data:
+
+    ```{r}
+
+    SNP_header <- colnames(genotypes)[-c(1:3)] #making a header for all SNP_IDs. 
+    m.genotype  <- melt(genotypes, measure.vars = SNP_header) #using melt function make our SNP_ID as rows
+
+    colnames(m.genotype)[4] <- "SNP_ID" #renaming the 4th column from "variable" to SNP_ID
+
+    m.genotype[ m.genotype == "?/?" ] = "N/A"
+
+    ```
+
+-   Use `mutate()` to create new df with new column called "HOMOZYGOUS" with TRUE and FALSE:
+# This crashed my R studio three times. I think it works but it's pretty intensive
+    ```{r}
+    m.genotype_new <- 
+      mutate(m.genotype, Homozygous = m.genotype$value=="A/A" | m.genotype$value=="C/C" | m.genotype$value=="G/G" | m.genotype$value=="T/T")
+
+    #replace th TRUE and FALSE with "Homozygous", "Heterozygous" and "Missing"
+    m.genotype_new$Homozygous [ m.genotype_new$Homozygous == "TRUE"] = "Homozygous"
+    m.genotype_new$Homozygous [ m.genotype_new$Homozygous == "FALSE"] = "Heterozygous"
+    m.genotype_new$Homozygous [ m.genotype_new$value == "N/A"] = "Missing"
+
+    #progress report
+    view(m.genotype_new)
+    head(m.genotype_new) 
+    ```
+
+-   Plot by Sample_ID:
+#Nice
+    ```{r}
+    ggplot(data = m.genotype_new) +
+      geom_bar(mapping = aes(x=Sample_ID, fill=Homozygous)) +
+      scale_x_discrete(labels=NULL)+
+      ggtitle(label = "Heterozygosity By Sample ID") +
+      xlab(label = "Sample ID") +
+      ylab(label = "Amount")
+    ```
+
+-   Plot by Group:
+
+    ```{r}
+    ggplot(data = m.genotype_new) +
+      geom_bar(mapping = aes(x=Group, fill=Homozygous), position="dodge")
+    ```
+
+3.  [**Graphing Data - Create your own plot: Amount of heterozygosity in each chromosome**]{.ul}
+
+#Nice!
+    ```{r}
+    m.joined_geno <- merge(sorted_snp_pos_chrom, m.genotype_new, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
+
+
+    ggplot(data= m.joined_geno) +
+      geom_bar(mapping = aes(x = Chromosome, fill=Homozygous),position="dodge")+
+      scale_x_discrete(limits=c(1:10, "unknown", "multiple")) +
+      ggtitle(label = "Heterozygosity per Chromosome") +
+      xlab(label = "Chromosome #") +
+      ylab(label = "Amount of Heterozygosity")
+
+    ```
+
+
+# Good Job Dua. I would update some of your code chunks as well as remove the change of directories in the middle of the document. Overall Good job though
