@@ -1,5 +1,17 @@
 #Part1
 
+#load the following 
+if (!require("ggplot2")) install.packages("ggplot2")
+library(ggplot2)
+if(!require("tibble")) install.packages("tibble")
+library(tibble)
+if (!require("reshape2")) install.packages("reshape2")
+library(reshape2)
+if(!require("dplyr")) install.packages("dplyr")
+library(dplyr)
+if (!require("plyr")) install.packages("plyr")
+library(plyr)
+
 #Data inspection
 genotypes <- read.delim("fang_et_al_genotypes.txt")
 snp_pos <-read.delim("snp_position.txt")
@@ -22,12 +34,6 @@ dim(snp_pos)
 
 
 #PART1-DATA PROCESSING: 
-if(!require("tibble")) install.packages("tibble")
-library(tibble)
-
-if(!require("dplyr")) install.packages("dplyr")
-library(dplyr)
-
 
 #parse Maize and Teosinte data by the groups we need:
 maize_genotypes <- subset(genotypes, Group == "ZMMIL" | Group == "ZMMLR" | Group == "ZMMMR")
@@ -54,7 +60,6 @@ new_transposed_maize <- rownames_to_column(transposed_maize, var="SNP_ID")
 new_transposed_teo <- rownames_to_column(transposed_teo, var="SNP_ID")
 
 #sort transposed_maize and transposed_teosinte by SNP_ID:
-
 
 sorted_maize <- arrange(new_transposed_maize, SNP_ID)
 sorted_teo<- arrange(new_transposed_teo, SNP_ID) 
@@ -123,17 +128,6 @@ for (i in 1:10){
 }
 
 #PART2-DATA GRAPHING
-#load the following 
- if (!require("ggplot2")) install.packages("ggplot2")
-library(ggplot2)
-if(!require("tibble")) install.packages("tibble")
-library(tibble)
-if (!require("reshape2")) install.packages("reshape2")
-library(reshape2)
-if(!require("dplyr")) install.packages("dplyr")
-library(dplyr)
-if (!require("plyr")) install.packages("plyr")
-library(plyr)
 
 #transform the original genotypes file 
 transposed_genotypes <- as.data.frame(t(genotypes))
@@ -160,10 +154,8 @@ ggplot(data = joined_genotypes) +
     axis.text = element_text(size = 12),
     axis.title = element_text(size = 12)
   )
-#joined_genotypes$Chromosome <- factor(joined_genotypes$Chromosome, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "multiple", "unknown", "NA"))
-#ggplot(joined_genotypes) + geom_bar(aes(joined_genotypes$Chromosome)) + xlab("Chromosome") + ylab("Total Number of SNPs")
-#ggplot(genotypes) + geom_bar(aes(genotypes$Group)) + xlab("Group") + ylab("Total Number of SNPs")
 
+ggplot(data = joined_genotypes) + geom_point(mapping = aes(x=Position, y=Chromosome))
 
 #missing data heterozygousity 
 
@@ -197,7 +189,9 @@ ggplot(data = m.genotype_new) +
 #plot by Group - makes it so the variable are directly beside each other rather than stacked. 
 
 ggplot(data = m.genotype_new) +
-  geom_bar(mapping = aes(x=Group, fill=Homozygous), position="dodge")
+  geom_bar(mapping = aes(x=Group, fill=Homozygous), position="dodge") + 
+  ggtitle(label = "Heterozygosity by Group") +
+  theme(axis.text.x = element_text(angle = 90))
 
 #create own plot: amount of heterozygosity in each chromosome 
 
@@ -210,9 +204,5 @@ ggplot(data= m.joined_geno) +
   ggtitle(label = "Heterozygosity per Chromosome") +
   xlab(label = "Chromosome #") +
   ylab(label = "Amount of Heterozygosity")
-
-
-ggplot(data= m.joined_geno) +
-  geom_point(mapping = aes(x = Position, y=SNP_ID))
 
 

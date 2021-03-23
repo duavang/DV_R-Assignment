@@ -11,15 +11,33 @@ knitr::opts_chunk$set(echo = TRUE)
 
 1.  [**Data Inspection:**]{.ul}
 
--   To set working directory and open files:
+-   Install the following packages:
 
-    ```{r}
-      setwd("~/Desktop/DV_R-Assignment")
-      genotypes <- read.delim("fang_et_al_genotypes.txt")
-      snp_pos <-read.delim("snp_position.txt")
+    ```{r, results='hide', message=FALSE}
+
+    #load the following - suggested by Cook_Review to place it at the beginning: 
+     if (!require("ggplot2")) install.packages("ggplot2")
+    library(ggplot2)
+    if(!require("tibble")) install.packages("tibble")
+    library(tibble)
+    if (!require("reshape2")) install.packages("reshape2")
+    library(reshape2)
+    if (!require("plyr")) install.packages("plyr")
+    library(plyr);
+    if(!require("dplyr")) install.packages("dplyr")
+    library(dplyr)
+
     ```
 
-1.  To inspect the files:
+-   Set working directory and open files:
+
+    ```{r}
+    setwd("~/Desktop/DV_R-Assignment")
+    genotypes <- read.delim("fang_et_al_genotypes.txt")
+    snp_pos <-read.delim("snp_position.txt")
+    ```
+
+-   To inspect the files:
 
     -   `file.info` = is used to determine size of file in bytes, whether the file is a directory, last status change and last access times, user ID of the file's owner, username, group name, and other info.
 
@@ -44,19 +62,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 2.  [**Data processing:**]{.ul}
 
--   First we need to install and run the following packages:
-
-    ```{r}
-
-    if(!require("tibble")) install.packages("tibble")
-    library(tibble)
-
-    if(!require("dplyr")) install.packages("dplyr")
-    library(dplyr)
-
-    ```
-
--   Next, need to parse the data out for groups:
+-   First, need to parse the data out for groups:
 
     -   Maize: ZMMIL, ZMMLR, and ZMMMR
 
@@ -71,13 +77,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Third, we need to transpose the data so that our columns in the `fang_et_al_genotypes.txt` file becomes our rows:
 
-    ```{r}
+    ```{r, results='hide'}
     transposed_maize <- as.data.frame(t(maize_genotypes))
     transposed_teo <- as.data.frame(t(teo_genotypes))
 
     #Progress check:
-    View(transposed_maize)
-    View(transposed_teo)
+    head(transposed_maize)
+    head(transposed_teo)
 
     ```
 
@@ -112,18 +118,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Join sorted_maize genotypes and sorted_teosinte with the sorted_snp_pos_chrom data:
 
-    ```{r}
+    ```{r, results='hide'}
     joined_maize <- merge(sorted_snp_pos_chrom,sorted_maize, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
     joined_teosinte <- merge(sorted_snp_pos_chrom,sorted_teo, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
 
     #Progress check:
-    View(joined_teosinte)
-    View(joined_maize)
+    head(joined_teosinte)
+    head(joined_maize)
     ```
 
 -   Extract data from each chromosome in maize and teosinte with increasing position with missing data indicated as "?":
 
-    ```{r}
+    ```{r, warning=FALSE}
 
     #sort increasing first: 
 
@@ -131,8 +137,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
     increase_pos_teo <- joined_teosinte[order(as.numeric(as.character(joined_teosinte$Position))),]
 
-    #set directory to ensure your files are saved where you want them to: 
-    setwd("~/Desktop/DV_R-Assignment/All_Maize_Genotypes/Increasing")
+    #at this point, you can set a working directory to save the files, if not, you can do so at the end of the entire run. 
 
     for (i in 1:10) {
       maize_files_inc <- increase_pos_maize[increase_pos_maize$Chromosome == i,]
@@ -140,7 +145,8 @@ knitr::opts_chunk$set(echo = TRUE)
       write.csv(maize_files_inc, sprintf("Chr_%d_maize_increasing",i),row.names = F)
     }
 
-    setwd("~/Desktop/DV_R-Assignment/All_Teosinte_Genotypes/Increasing")
+    #at this point, you can set a working directory to save the files, if not, you can do so at the end of the entire run. 
+
     for (i in 1:10){
       teosinte_files_inc<-increase_pos_teo[increase_pos_teo$Chromosome==i,]
       write.csv(teosinte_files_inc,sprintf("Chr_%d_teosinte_increasing",i),row.names = F)
@@ -149,21 +155,20 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Extract data from each chromosome in maize and teosinte with decreasing position with missing data indicated as "-":
 
-    ```{r}
+    ```{r, warning=FALSE, results='hide'}
     #sort decreasing first:
     decrease_pos_maize <- joined_maize[order(-as.numeric(as.character(joined_maize$Position))),]
     decrease_pos_teo <- joined_teosinte[order(-as.numeric(as.character(joined_teosinte$Position))),]
 
-    #replace missing values as "-" 
-    decrease_pos_maize[decrease_pos_maize == "?/?"] <- "-"
-    decrease_pos_teo [decrease_pos_teo == "?/?"] <- "-"
+    #replace missing values as "-/-" 
+    decrease_pos_maize[decrease_pos_maize == "?/?"] <- "-/-"
+    decrease_pos_teo [decrease_pos_teo == "?/?"] <- "-/-"
 
-    #check progress
-    View(decrease_pos_maize)
-    View(decrease_pos_teo)
+    #check progres
+    head(decrease_pos_maize)
+    head(decrease_pos_teo)
 
-    #set directory to ensure your files are saved where you want them to
-    setwd("~/Desktop/DV_R-Assignment/All_Maize_Genotypes/Decreasing")
+    #at this point, you can set a working directory to save the files, if not, you can do so at the end of the entire run. 
 
     for (i in 1:10) {
       maize_files_dec <- decrease_pos_maize[decrease_pos_maize$Chromosome == i,]
@@ -171,7 +176,7 @@ knitr::opts_chunk$set(echo = TRUE)
       write.csv(maize_files_dec, sprintf("Chr_%d_maize_decreasing",i),row.names = F)
     }
 
-    setwd("~/Desktop/DV_R-Assignment/All_Teosinte_Genotypes/Decreasing")
+    #at this point, you can set a working directory to save the files, if not, you can do so at the end of the entire run. 
     for (i in 1:10){
       teosinte_files_decrease<-decrease_pos_teo[decrease_pos_teo$Chromosome==i,]
       write.csv(teosinte_files_decrease,sprintf("Chr_%d_teosinte_Decreasing",i),row.names = F)
@@ -181,22 +186,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Part 2
 
 1.  [**Graphing Data - SNPs Per Chromosome:**]{.ul}
-
--   Load the following packages:
-
-    ```{r}
-    #load the following 
-     if (!require("ggplot2")) install.packages("ggplot2")
-    library(ggplot2)
-    if(!require("tibble")) install.packages("tibble")
-    library(tibble)
-    if (!require("reshape2")) install.packages("reshape2")
-    library(reshape2)
-    if(!require("dplyr")) install.packages("dplyr")
-    library(dplyr)
-    if (!require("plyr")) install.packages("plyr")
-    library(plyr)
-    ```
 
 -   Transpose the original genotypes data frame:
 
@@ -218,9 +207,9 @@ knitr::opts_chunk$set(echo = TRUE)
     joined_genotypes <- merge(sorted_snp_pos_chrom,sorted_genotypes, by.x="SNP_ID", by.y="SNP_ID", all = TRUE)
     ```
 
--   Graphing SNPs Per Chromosome:
+-   Graphing SNPs Per Chromosome and Distribution of SNPs per Chromosome:
 
-    ```{r}
+    ```{r, warning=FALSE}
     ggplot(data = joined_genotypes) +
       geom_bar(mapping = aes(x = Chromosome)) +
       scale_x_discrete(limits=c(1:10, "unknown", "multiple")) +
@@ -234,11 +223,15 @@ knitr::opts_chunk$set(echo = TRUE)
         axis.title = element_text(size = 12)
       )
 
+
+    ggplot(data = joined_genotypes) + 
+      geom_point(mapping = aes(x=Position, y=Chromosome)) +
+      ggtitle(label = "Distribution of SNPs by Chromosome")
     ```
 
 2.  [**Graphing Data - Missing Data Heterozygosity:**]{.ul}
 
--   Reorganize the data:
+-   Reorganize the data using `melt()`:
 
     ```{r}
 
@@ -253,7 +246,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Use `mutate()` to create new df with new column called "HOMOZYGOUS" with TRUE and FALSE:
 
-    ```{r}
+    ```{r, results='hide'}
     m.genotype_new <- 
       mutate(m.genotype, Homozygous = m.genotype$value=="A/A" | m.genotype$value=="C/C" | m.genotype$value=="G/G" | m.genotype$value=="T/T")
 
@@ -263,7 +256,6 @@ knitr::opts_chunk$set(echo = TRUE)
     m.genotype_new$Homozygous [ m.genotype_new$value == "N/A"] = "Missing"
 
     #progress report
-    view(m.genotype_new)
     head(m.genotype_new) 
     ```
 
@@ -281,8 +273,14 @@ knitr::opts_chunk$set(echo = TRUE)
 -   Plot by Group:
 
     ```{r}
+    #changed to rotate x-axis labels 90 degree based off a suggestion by Sushma.
+
     ggplot(data = m.genotype_new) +
-      geom_bar(mapping = aes(x=Group, fill=Homozygous), position="dodge")
+      geom_bar(mapping = aes(x=Group, fill=Homozygous), position="dodge") + 
+      ggtitle(label = "Heterozygosity by Group") +
+      theme(axis.text.x = element_text(angle = 90)) 
+
+
     ```
 
 3.  [**Graphing Data - Create your own plot: Amount of heterozygosity in each chromosome**]{.ul}
@@ -299,3 +297,5 @@ knitr::opts_chunk$set(echo = TRUE)
       ylab(label = "Amount of Heterozygosity")
 
     ```
+
+Lastly, reorganize output files into their respective folders.
